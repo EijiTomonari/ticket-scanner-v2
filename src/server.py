@@ -1,6 +1,9 @@
 from flask import Flask
 
+from config import PYZBARNAME
+
 app = Flask(__name__)
+app.config.from_object('config')
 
 
 @app.route("/")
@@ -12,11 +15,14 @@ def hello_world():
 
 @app.route("/settings/write")
 def write_settings():
-    return "<p>Settings updated!</p>"
+    app.config.update(
+        PYZBARNAME='New cool name'
+    )
+    return app.config['PYZBARNAME']
 
 # Endpoint to read settings from the config file
 
 
 @app.route("/settings/read")
 def read_settings():
-    return "<p>Settings</p>"
+    return app.config['PYZBARNAME']
