@@ -11,14 +11,17 @@ def write_setting():
     is created by using the jsonify() function.
     """
     if request.method == 'POST':
-        print("Request form: ", request.form)
         settingName = request.form['name']
         value = float(request.form['value'])
         if settingName is None or value is None:
             return jsonify({'error': 'Bad request'}), 400
         setting = Setting.query.filter_by(name=settingName).first()
-        setting = Setting(name=settingName, value=value)
-        db.session.add(setting)
+        if setting is None:
+            setting = Setting(name=settingName, value=value)
+        setting.name = settingName
+        setting.value = value
+        local_object = db.session.merge(setting)
+        db.session.add(local_object)
         db.session.commit()
         return jsonify({'message': 'Setting added'}), 201
     else:
