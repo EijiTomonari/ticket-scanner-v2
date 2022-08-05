@@ -1,6 +1,7 @@
 import os
 from flask import Flask, render_template, request, url_for, redirect, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import null
 from sqlalchemy.sql import func
 import json
 
@@ -37,10 +38,22 @@ def hello_world():
     return "<Hello, World!"
 
 
-@app.route("/settings/write")
+@app.route("/settings/write", methods=(['POST']))
 # Endpoint to write new settings to the config file
-def write_settings():
-    return "Write settings"
+def write_setting():
+    if request.method == 'POST':
+        print("Request form: ", request.form)
+        settingName = request.form['name']
+        value = float(request.form['value'])
+        if settingName is None or value is None:
+            return jsonify({'error': 'Bad request'}), 400
+        setting = Setting.query.filter_by(name=settingName).first()
+        setting = Setting(name=settingName, value=value)
+        db.session.add(setting)
+        db.session.commit()
+        return jsonify({'message': 'Setting added'}), 201
+    else:
+        return jsonify({'error': 'Method not allowed'}), 405
 
 
 @app.route("/settings/read")
