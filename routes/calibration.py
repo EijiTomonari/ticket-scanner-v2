@@ -1,5 +1,5 @@
 from flask import Blueprint
-from controllers.CalibrationController import barcodesVideoFeed, omrBoxesAreaVideoFeed
+from controllers.CalibrationController import barcodesVideoFeed, omrVideoFeed
 
 calibration_bp = Blueprint('calibration_bp', __name__)
 
@@ -7,6 +7,6 @@ calibration_bp = Blueprint('calibration_bp', __name__)
 def handleBarcodesVideoFeed():
     return barcodesVideoFeed()
 
-@calibration_bp.route("/omr/boxes-area/feed")
-def handleOMRBoxesAreaVideoFeed():
-    return omrBoxesAreaVideoFeed()
+@calibration_bp.route("/omr/feed")
+def handleOMRVideoFeed():
+    return omrVideoFeed()
