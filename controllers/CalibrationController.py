@@ -17,7 +17,7 @@ def streamBarcodesFeed():
     are, decodes the barcodes, draws a rectangle around them, rotates the image, and then returns the
     image.
     """
-    from app import app
+    from app import app,barcodesCamera
     # Default settings
     BARCODES_AREA_X1 = app.config['BARCODES_AREA_X1']
     BARCODES_AREA_X2 = app.config['BARCODES_AREA_X2']
@@ -29,11 +29,7 @@ def streamBarcodesFeed():
     BARCODES_CONTRAST = app.config['BARCODES_CONTRAST']
     BARCODES_BRIGHTNESS = app.config['BARCODES_BRIGHTNESS']
     with app.app_context():
-        # Getting the camera ID from the database. If it is not found, it will use the default camera ID.
-        db_ID = Setting.query.filter_by(name='BARCODES_CAMERA_ID').first()
-        if db_ID is not None:
-            BARCODES_CAMERA_ID = db_ID.value
-        camera = cv2.VideoCapture(BARCODES_CAMERA_ID, cv2.CAP_DSHOW)
+        camera = barcodesCamera
         # Getting the camera width and height from the database. If it is not found, it will use the default
         # camera width and height
         db_WIDTH = Setting.query.filter_by(name='BARCODES_CAMERA_WIDTH').first()
@@ -286,10 +282,9 @@ def processBoxes(app,contours, boxesArea, thresh,OMR_BOXES_PER_ROW,OMR_BOXES_ROW
 
 def streamOMRFeed():
 
-    from app import app
+    from app import app, omrCamera
 
     # Default settings
-    OMR_CAMERA_ID = app.config['OMR_CAMERA_ID']
     OMR_BOXES_AREA_X1 = app.config['OMR_BOXES_AREA_X1']
     OMR_BOXES_AREA_X2 = app.config['OMR_BOXES_AREA_X2']
     OMR_BOXES_AREA_Y1 = app.config['OMR_BOXES_AREA_Y1']
@@ -312,10 +307,7 @@ def streamOMRFeed():
 
     # Getting the camera ID from the database. If it is not found, it will use the default camera ID.
     with app.app_context():
-        db_ID = Setting.query.filter_by(name='OMR_CAMERA_ID').first()
-        if db_ID is not None:
-            OMR_CAMERA_ID= db_ID.value
-        camera = cv2.VideoCapture(OMR_CAMERA_ID, cv2.CAP_DSHOW)
+        camera = omrCamera
         db_WIDTH = Setting.query.filter_by(name='OMR_CAMERA_WIDTH').first()
         db_HEIGHT = Setting.query.filter_by(name='OMR_CAMERA_HEIGHT').first()
         if db_WIDTH is not None and db_HEIGHT is not None:

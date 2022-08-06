@@ -4,12 +4,9 @@ from pyzbar.pyzbar import decode
 from models.Setting import Setting
 
 def scanBarcodes():
-    from app import app
+    from app import app,barcodesCamera
     with app.app_context():
-        BARCODES_CAMERA_ID = Setting.query.filter_by(name='BARCODES_CAMERA_ID').first()
-        if BARCODES_CAMERA_ID is None:
-            BARCODES_CAMERA_ID = app.config['BARCODES_CAMERA_ID']
-        camera = cv2.VideoCapture(BARCODES_CAMERA_ID.value, cv2.CAP_DSHOW)
+        camera = barcodesCamera
         camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
         if not camera.isOpened():

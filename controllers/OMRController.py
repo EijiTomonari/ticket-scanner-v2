@@ -9,7 +9,6 @@ def findBoxesArea(camera,OMR_FRAMES_OFFSET,OMR_BOXES_AREA_X1, OMR_BOXES_AREA_X2,
     img = frame[OMR_BOXES_AREA_X1:OMR_BOXES_AREA_X2, OMR_BOXES_AREA_Y1:OMR_BOXES_AREA_Y2]
     img = cv2.convertScaleAbs(img, alpha=OMR_CONTRAST, beta=OMR_BRIGHTNESS)
     boxesArea = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
-    camera.release()
     return boxesArea
 
 def findBoxesContours(img,OMR_BLUR_KENEL_SIZE,OMR_MAX_THRESHOLD,OMR_THRESHOLD_BLOCK_SIZE,OMR_THRESHOLD_C,OMR_BOX_MIN_WIDTH,OMR_BOX_MIN_HEIGHT,OMR_BOX_MIN_ASPECT_RATIO,OMR_BOX_MAX_ASPECT_RATIO):
@@ -68,10 +67,9 @@ def processBoxes(contours, thresh,OMR_BOXES_PER_ROW,OMR_BOXES_ROWS,OMR_STANDARD_
     return checked
 
 def omr():
-    from app import app
+    from app import app, omrCamera
 
     # Default settings
-    OMR_CAMERA_ID = app.config['OMR_CAMERA_ID']
     OMR_BOXES_AREA_X1 = app.config['OMR_BOXES_AREA_X1']
     OMR_BOXES_AREA_X2 = app.config['OMR_BOXES_AREA_X2']
     OMR_BOXES_AREA_Y1 = app.config['OMR_BOXES_AREA_Y1']
@@ -94,9 +92,6 @@ def omr():
     OMR_FRAMES_OFFSET = app.config['OMR_FRAMES_OFFSET']
 
     with app.app_context():
-        db_ID = Setting.query.filter_by(name='OMR_CAMERA_ID').first()
-        if db_ID is not None:
-            OMR_CAMERA_ID= db_ID.value
         db_WIDTH = Setting.query.filter_by(name='OMR_CAMERA_WIDTH').first()
         db_HEIGHT = Setting.query.filter_by(name='OMR_CAMERA_HEIGHT').first()
         if db_WIDTH is not None and db_HEIGHT is not None:
@@ -146,7 +141,8 @@ def omr():
             OMR_FRAMES_OFFSET = db_FRAMES_OFFSET.value
         
 
-        camera = cv2.VideoCapture(OMR_CAMERA_ID, cv2.CAP_DSHOW)
+        #camera = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+        camera = omrCamera
         camera.set(cv2.CAP_PROP_FRAME_WIDTH, OMR_CAMERA_WIDTH)
         camera.set(cv2.CAP_PROP_FRAME_HEIGHT, OMR_CAMERA_HEIGHT)
         
