@@ -1,11 +1,15 @@
 import cv2
 from flask import Response
 from pyzbar.pyzbar import decode
-from config import BARCODES_AREA_X1, BARCODES_BRIGHTNESS, BARCODES_CONTRAST, OMR_BOX_MAX_ASPECT_RATIO, OMR_BOX_MIN_ASPECT_RATIO, OMR_CAMERA_ID
+from config import BARCODES_AREA_X1, BARCODES_BRIGHTNESS, BARCODES_CONTRAST, OMR_BOX_MAX_ASPECT_RATIO, OMR_BOX_MIN_ASPECT_RATIO, OMR_CAMERA_ID, OMR_CONTRAST
 from models.Setting import Setting
 from flask_sqlalchemy import SQLAlchemy
 import numpy as np
 db = SQLAlchemy()
+
+####################################################################################################
+# Barcodes Functions                                                                                                
+####################################################################################################
 
 def streamBarcodesFeed():
     """
@@ -90,7 +94,7 @@ def barcodesVideoFeed():
 # OMR Functions                                                                                                
 ####################################################################################################
 
-def cutBoxesArea(app, originalImage,OMR_BOXES_AREA_X1, OMR_BOXES_AREA_X2, OMR_BOXES_AREA_Y1, OMR_BOXES_AREA_Y2):
+def cutBoxesArea(app, originalImage,OMR_BOXES_AREA_X1, OMR_BOXES_AREA_X2, OMR_BOXES_AREA_Y1, OMR_BOXES_AREA_Y2,OMR_CONTRAST,OMR_BRIGHTNESS):
     """
     It takes the original image, and cuts out a section of it, based on the coordinates of the OMR boxes
     area
@@ -105,6 +109,8 @@ def cutBoxesArea(app, originalImage,OMR_BOXES_AREA_X1, OMR_BOXES_AREA_X2, OMR_BO
     :return: the image that has been rotated.
     """
     with app.app_context():
+        db_BRIGHTNESS = Setting.query.filter_by(name='OMR_BRIGHTNESS').first()
+        db_CONTRAST = Setting.query.filter_by(name='OMR_CONTRAST').first()
         db_X1 = Setting.query.filter_by(name='OMR_BOXES_AREA_X1').first()
         db_X2 = Setting.query.filter_by(name='OMR_BOXES_AREA_X2').first()
         db_Y1 = Setting.query.filter_by(name='OMR_BOXES_AREA_Y1').first()
@@ -114,7 +120,11 @@ def cutBoxesArea(app, originalImage,OMR_BOXES_AREA_X1, OMR_BOXES_AREA_X2, OMR_BO
             OMR_BOXES_AREA_X2 = db_X2.value
             OMR_BOXES_AREA_Y1 = db_Y1.value
             OMR_BOXES_AREA_Y2 = db_Y2.value
+        if db_CONTRAST is not None and db_BRIGHTNESS is not None:
+            OMR_CONTRAST = db_CONTRAST.value
+            OMR_BRIGHTNESS = db_BRIGHTNESS.value
         image = originalImage[OMR_BOXES_AREA_X1:OMR_BOXES_AREA_X2,OMR_BOXES_AREA_Y1:OMR_BOXES_AREA_Y2]
+        image = cv2.convertScaleAbs(image, alpha=OMR_CONTRAST, beta=OMR_BRIGHTNESS)
         boxesArea = cv2.rotate(image,cv2.ROTATE_90_COUNTERCLOCKWISE)
         boxesAreaGray = cv2.cvtColor(boxesArea, cv2.COLOR_BGR2GRAY)
         return boxesAreaGray
@@ -286,6 +296,8 @@ def streamOMRFeed():
     OMR_BOXES_AREA_Y2 = app.config['OMR_BOXES_AREA_Y2']
     OMR_CAMERA_WIDTH = app.config['OMR_CAMERA_WIDTH']
     OMR_CAMERA_HEIGHT = app.config['OMR_CAMERA_HEIGHT']
+    OMR_CONTRAST = app.config['OMR_CONTRAST']
+    OMR_BRIGHTNESS = app.config['OMR_BRIGHTNESS']
     OMR_BLUR_KENEL_SIZE = app.config['OMR_BLUR_KENEL_SIZE']
     OMR_MAX_THRESHOLD = app.config['OMR_MAX_THRESHOLD']
     OMR_THRESHOLD_BLOCK_SIZE = app.config['OMR_THRESHOLD_BLOCK_SIZE']
@@ -317,7 +329,7 @@ def streamOMRFeed():
         if not success:
             break
         else:
-            boxesArea = cutBoxesArea(app, frame,OMR_BOXES_AREA_X1, OMR_BOXES_AREA_X2, OMR_BOXES_AREA_Y1, OMR_BOXES_AREA_Y2)
+            boxesArea = cutBoxesArea(app, frame,OMR_BOXES_AREA_X1, OMR_BOXES_AREA_X2, OMR_BOXES_AREA_Y1, OMR_BOXES_AREA_Y2,OMR_CONTRAST,OMR_BRIGHTNESS)
             imgBlurred, threshold, detectedBoxes, contours,boxesContours = findBoxesContours(app, boxesArea,OMR_BLUR_KENEL_SIZE,
             OMR_MAX_THRESHOLD,OMR_THRESHOLD_BLOCK_SIZE,OMR_THRESHOLD_C,OMR_BOX_MIN_WIDTH,OMR_BOX_MIN_HEIGHT,OMR_BOX_MIN_ASPECT_RATIO,OMR_BOX_MAX_ASPECT_RATIO)
             checkedBoxesArea, checkedBoxes, checked = processBoxes(app,boxesContours, boxesArea, threshold,OMR_BOXES_PER_ROW,OMR_BOXES_ROWS,OMR_STANDARD_DEVIATION_THRESHOLD)
