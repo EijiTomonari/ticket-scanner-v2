@@ -12,7 +12,7 @@ def scanBarcodes():
         if not camera.isOpened():
             return(jsonify({"message": "Could not initialize barcodes camera", "severity": "danger"}),401)
         iteration = 0
-        while(iteration<3):
+        while(iteration<2):
             success, frame = camera.read()
             if not success:
                 return(jsonify({"message": "Could not read barcodes camera", "severity": "danger"}),401)
@@ -20,11 +20,10 @@ def scanBarcodes():
             detectedBarcodes = decode(gray)
             iteration+=1
         if not detectedBarcodes:
-            return(jsonify({"message": "Could not detect barcodes", "severity": "danger"}),401)
+            return(jsonify({"message": "Could not detect barcodes", "severity": "success"}),201)
         else:
             barcodes=[]
             for barcode in detectedBarcodes:
                 if barcode.data != "" and barcode.type == "EAN13":
                     barcodes.append(barcode.data.decode("utf-8"))
-            camera.release()
             return(jsonify({"message": "Barcodes detected", "severity": "success", "barcodes": barcodes}),200)      

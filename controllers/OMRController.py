@@ -11,7 +11,8 @@ def findBoxesArea(camera,OMR_FRAMES_OFFSET,OMR_BOXES_AREA_X1, OMR_BOXES_AREA_X2,
     boxesArea = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
     return boxesArea
 
-def findBoxesContours(img,OMR_BLUR_KENEL_SIZE,OMR_MAX_THRESHOLD,OMR_THRESHOLD_BLOCK_SIZE,OMR_THRESHOLD_C,OMR_BOX_MIN_WIDTH,OMR_BOX_MIN_HEIGHT,OMR_BOX_MIN_ASPECT_RATIO,OMR_BOX_MAX_ASPECT_RATIO):
+def findBoxesContours(img,OMR_BLUR_KENEL_SIZE,OMR_MAX_THRESHOLD,OMR_THRESHOLD_BLOCK_SIZE,OMR_THRESHOLD_C,OMR_BOX_MIN_WIDTH,
+OMR_BOX_MIN_HEIGHT,OMR_BOX_MIN_ASPECT_RATIO,OMR_BOX_MAX_ASPECT_RATIO,OMR_BOX_MAX_WIDTH,OMR_BOX_MAX_HEIGHT):
     imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     imgBlurred = cv2.GaussianBlur(imgGray, (OMR_BLUR_KENEL_SIZE, OMR_BLUR_KENEL_SIZE), 0)
     thresh = cv2.adaptiveThreshold(imgBlurred, OMR_MAX_THRESHOLD,
@@ -23,7 +24,7 @@ def findBoxesContours(img,OMR_BLUR_KENEL_SIZE,OMR_MAX_THRESHOLD,OMR_THRESHOLD_BL
     for c in contours:
         (x, y, w, h) = cv2.boundingRect(c)
         aspectRatio = w / float(h)
-        if w >= OMR_BOX_MIN_WIDTH and h >= OMR_BOX_MIN_HEIGHT and aspectRatio >= OMR_BOX_MIN_ASPECT_RATIO and aspectRatio <= OMR_BOX_MAX_ASPECT_RATIO:
+        if w >= OMR_BOX_MIN_WIDTH and w<OMR_BOX_MAX_WIDTH and h >= OMR_BOX_MIN_HEIGHT and h < OMR_BOX_MAX_HEIGHT and aspectRatio >= OMR_BOX_MIN_ASPECT_RATIO and aspectRatio <= OMR_BOX_MAX_ASPECT_RATIO:
             boxesContours.append(c)
 
     return boxesContours, thresh
@@ -86,6 +87,8 @@ def omr():
     OMR_BOX_MIN_HEIGHT =  app.config['OMR_BOX_MIN_HEIGHT']
     OMR_BOX_MIN_ASPECT_RATIO = app.config['OMR_BOX_MIN_ASPECT_RATIO']
     OMR_BOX_MAX_ASPECT_RATIO = app.config['OMR_BOX_MAX_ASPECT_RATIO']
+    OMR_BOX_MAX_WIDTH = app.config['OMR_BOX_MAX_WIDTH']
+    OMR_BOX_MAX_HEIGHT = app.config['OMR_BOX_MAX_HEIGHT']
     OMR_BOXES_PER_ROW = app.config['OMR_BOXES_PER_ROW']
     OMR_BOXES_ROWS = app.config['OMR_BOXES_ROWS']
     OMR_STANDARD_DEVIATION_THRESHOLD = app.config['OMR_STANDARD_DEVIATION_THRESHOLD']
@@ -122,13 +125,17 @@ def omr():
             OMR_THRESHOLD_C = db_THRESHOLD_C.value
         db_MIN_WIDTH = Setting.query.filter_by(name='OMR_BOX_MIN_WIDTH').first()
         db_MIN_HEIGHT = Setting.query.filter_by(name='OMR_BOX_MIN_HEIGHT').first()
+        db_MAX_WIDTH = Setting.query.filter_by(name='OMR_BOX_MAX_WIDTH').first()
+        db_MAX_HEIGHT = Setting.query.filter_by(name='OMR_BOX_MAX_HEIGHT').first()
         db_MIN_ASPECT_RATIO = Setting.query.filter_by(name='OMR_BOX_MIN_ASPECT_RATIO').first()
         db_MAX_ASPECT_RATIO = Setting.query.filter_by(name='OMR_BOX_MAX_ASPECT_RATIO').first()
-        if db_MIN_WIDTH is not None and db_MIN_HEIGHT is not None and db_MIN_ASPECT_RATIO is not None and db_MAX_ASPECT_RATIO is not None:
+        if db_MIN_WIDTH is not None and db_MIN_HEIGHT is not None and db_MIN_ASPECT_RATIO is not None and db_MAX_ASPECT_RATIO is not None and db_MAX_WIDTH is not None and db_MAX_HEIGHT is not None:
             OMR_BOX_MIN_WIDTH = db_MIN_WIDTH.value
             OMR_BOX_MIN_HEIGHT = db_MIN_HEIGHT.value
             OMR_BOX_MIN_ASPECT_RATIO = db_MIN_ASPECT_RATIO.value
             OMR_BOX_MAX_ASPECT_RATIO = db_MAX_ASPECT_RATIO.value
+            OMR_BOX_MAX_WIDTH = db_MAX_WIDTH.value
+            OMR_BOX_MAX_HEIGHT = db_MAX_HEIGHT.value
         db_BOXES_PER_ROW = Setting.query.filter_by(name='OMR_BOXES_PER_ROW').first()
         db_BOXES_ROWS = Setting.query.filter_by(name='OMR_BOXES_ROWS').first()
         db_STANDARD_DEVIATION_THRESHOLD = Setting.query.filter_by(name='OMR_STANDARD_DEVIATION_THRESHOLD').first()
@@ -148,8 +155,12 @@ def omr():
         
     try:
         boxesArea = findBoxesArea(camera,OMR_FRAMES_OFFSET,OMR_BOXES_AREA_X1, OMR_BOXES_AREA_X2, OMR_BOXES_AREA_Y1, OMR_BOXES_AREA_Y2,OMR_CONTRAST,OMR_BRIGHTNESS)
-        boxesContours, thresh = findBoxesContours(boxesArea,OMR_BLUR_KENEL_SIZE,OMR_MAX_THRESHOLD,OMR_THRESHOLD_BLOCK_SIZE,OMR_THRESHOLD_C,OMR_BOX_MIN_WIDTH,OMR_BOX_MIN_HEIGHT,OMR_BOX_MIN_ASPECT_RATIO,OMR_BOX_MAX_ASPECT_RATIO)
+        boxesContours, thresh = findBoxesContours(boxesArea,OMR_BLUR_KENEL_SIZE,OMR_MAX_THRESHOLD,OMR_THRESHOLD_BLOCK_SIZE,
+        OMR_THRESHOLD_C,OMR_BOX_MIN_WIDTH,OMR_BOX_MIN_HEIGHT,OMR_BOX_MIN_ASPECT_RATIO,OMR_BOX_MAX_ASPECT_RATIO,
+        OMR_BOX_MAX_WIDTH,OMR_BOX_MAX_HEIGHT)
+        if(len(boxesContours)!=OMR_BOXES_PER_ROW*OMR_BOXES_ROWS):
+            return(jsonify({"message": [0] * OMR_BOXES_ROWS, "severity": "success"}),201)
         checked = processBoxes(boxesContours, thresh,OMR_BOXES_PER_ROW,OMR_BOXES_ROWS,OMR_STANDARD_DEVIATION_THRESHOLD)
         return(jsonify({"message": checked.tolist(), "severity": "success"}),201)
     except Exception as e:
-        return(jsonify({"message": e.__repr__(), "severity": "danger"}),401)
+        return(jsonify({"message": e.__repr__(), "severity": "danger"}),500)

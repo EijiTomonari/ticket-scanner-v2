@@ -134,7 +134,9 @@ def findBoxesContours(
     OMR_BOX_MIN_WIDTH,
     OMR_BOX_MIN_HEIGHT,
     OMR_BOX_MIN_ASPECT_RATIO,
-    OMR_BOX_MAX_ASPECT_RATIO):
+    OMR_BOX_MAX_ASPECT_RATIO,
+    OMR_BOX_MAX_WIDTH,
+    OMR_BOX_MAX_HEIGHT):
 
     """
     It takes an image, finds the contours of the boxes in the image, and returns the image with the
@@ -167,11 +169,15 @@ def findBoxesContours(
         db_MIN_HEIGHT = Setting.query.filter_by(name='OMR_BOX_MIN_HEIGHT').first()
         db_MIN_ASPECT_RATIO = Setting.query.filter_by(name='OMR_BOX_MIN_ASPECT_RATIO').first()
         db_MAX_ASPECT_RATIO = Setting.query.filter_by(name='OMR_BOX_MAX_ASPECT_RATIO').first()
-        if db_MIN_WIDTH is not None and db_MIN_HEIGHT is not None and db_MIN_ASPECT_RATIO is not None and db_MAX_ASPECT_RATIO is not None:
+        db_MAX_WIDTH = Setting.query.filter_by(name='OMR_BOX_MAX_WIDTH').first()
+        db_MAX_HEIGHT = Setting.query.filter_by(name='OMR_BOX_MAX_HEIGHT').first()
+        if db_MIN_WIDTH is not None and db_MIN_HEIGHT is not None and db_MIN_ASPECT_RATIO is not None and db_MAX_ASPECT_RATIO is not None and db_MAX_WIDTH is not None and db_MAX_HEIGHT is not None:
             OMR_BOX_MIN_WIDTH = db_MIN_WIDTH.value
             OMR_BOX_MIN_HEIGHT = db_MIN_HEIGHT.value
             OMR_BOX_MIN_ASPECT_RATIO = db_MIN_ASPECT_RATIO.value
             OMR_BOX_MAX_ASPECT_RATIO = db_MAX_ASPECT_RATIO.value
+            OMR_BOX_MAX_WIDTH = db_MAX_WIDTH.value
+            OMR_BOX_MAX_HEIGHT = db_MAX_HEIGHT.value
 
     imgDraw = boxesArea.copy()
     imgGray = boxesArea.copy()
@@ -185,7 +191,7 @@ def findBoxesContours(
     for c in contours:
         (x, y, w, h) = cv2.boundingRect(c)
         aspectRatio = w / float(h)
-        if w >= OMR_BOX_MIN_WIDTH and h >= OMR_BOX_MIN_HEIGHT and aspectRatio >= OMR_BOX_MIN_ASPECT_RATIO and aspectRatio <= OMR_BOX_MAX_ASPECT_RATIO:
+        if w >= OMR_BOX_MIN_WIDTH and w<OMR_BOX_MAX_WIDTH and h >= OMR_BOX_MIN_HEIGHT and h < OMR_BOX_MAX_HEIGHT and aspectRatio >= OMR_BOX_MIN_ASPECT_RATIO and aspectRatio <= OMR_BOX_MAX_ASPECT_RATIO:
             boxesContours.append(c)
             x, y, w, h = cv2.boundingRect(c)
             cv2.rectangle(imgDraw, (x, y), (x + w, y + h),
@@ -298,6 +304,8 @@ def streamOMRFeed():
     OMR_THRESHOLD_C = app.config['OMR_THRESHOLD_C']
     OMR_BOX_MIN_WIDTH = app.config['OMR_BOX_MIN_WIDTH']
     OMR_BOX_MIN_HEIGHT =  app.config['OMR_BOX_MIN_HEIGHT']
+    OMR_BOX_MAX_WIDTH = app.config['OMR_BOX_MAX_WIDTH']
+    OMR_BOX_MAX_HEIGHT = app.config['OMR_BOX_MAX_HEIGHT']
     OMR_BOX_MIN_ASPECT_RATIO = app.config['OMR_BOX_MIN_ASPECT_RATIO']
     OMR_BOX_MAX_ASPECT_RATIO = app.config['OMR_BOX_MAX_ASPECT_RATIO']
     OMR_BOXES_PER_ROW = app.config['OMR_BOXES_PER_ROW']
@@ -322,9 +330,10 @@ def streamOMRFeed():
         else:
             boxesArea = cutBoxesArea(app, frame,OMR_BOXES_AREA_X1, OMR_BOXES_AREA_X2, OMR_BOXES_AREA_Y1, OMR_BOXES_AREA_Y2,OMR_CONTRAST,OMR_BRIGHTNESS)
             imgBlurred, threshold, detectedBoxes, contours,boxesContours = findBoxesContours(app, boxesArea,OMR_BLUR_KENEL_SIZE,
-            OMR_MAX_THRESHOLD,OMR_THRESHOLD_BLOCK_SIZE,OMR_THRESHOLD_C,OMR_BOX_MIN_WIDTH,OMR_BOX_MIN_HEIGHT,OMR_BOX_MIN_ASPECT_RATIO,OMR_BOX_MAX_ASPECT_RATIO)
+            OMR_MAX_THRESHOLD,OMR_THRESHOLD_BLOCK_SIZE,OMR_THRESHOLD_C,OMR_BOX_MIN_WIDTH,OMR_BOX_MIN_HEIGHT,OMR_BOX_MIN_ASPECT_RATIO,OMR_BOX_MAX_ASPECT_RATIO,
+            OMR_BOX_MAX_WIDTH,OMR_BOX_MAX_HEIGHT)
             checkedBoxesArea, checkedBoxes, checked = processBoxes(app,boxesContours, boxesArea, threshold,OMR_BOXES_PER_ROW,OMR_BOXES_ROWS,OMR_STANDARD_DEVIATION_THRESHOLD)
-            firstLine = np.column_stack((threshold,detectedBoxes,checkedBoxesArea,checkedBoxes))
+            firstLine = np.column_stack((threshold,checkedBoxesArea,checkedBoxes))
             ret, buffer = cv2.imencode('.jpg', firstLine)
             firstLine = buffer.tobytes()
             yield (b'--frame\r\n'
