@@ -11,19 +11,23 @@ def write_setting():
     is created by using the jsonify() function.
     """
     if request.method == 'POST':
-        settingName = request.form['name']
-        value = float(request.form['value'])
-        if settingName is None or value is None:
-            return jsonify({'error': 'Bad request'}), 400
-        setting = Setting.query.filter_by(name=settingName).first()
-        if setting is None:
-            setting = Setting(name=settingName, value=value)
-        setting.name = settingName
-        setting.value = value
-        local_object = db.session.merge(setting)
-        db.session.add(local_object)
-        db.session.commit()
-        return jsonify({'message': 'Setting added'}), 201
+        try:
+            settingName = request.form['name']
+            value = float(request.form['value'])
+            if settingName is None or value is None:
+                return jsonify({'error': 'Bad request'}), 400
+            setting = Setting.query.filter_by(name=settingName).first()
+            if setting is None:
+                setting = Setting(name=settingName, value=value)
+            setting.name = settingName
+            setting.value = value
+            local_object = db.session.merge(setting)
+            db.session.add(local_object)
+            db.session.commit()
+            return jsonify({'message': 'Setting added'}), 201
+        except Exception as e:
+            print(e)
+            return jsonify({'error': str(e)}), 500
     else:
         return jsonify({'error': 'Method not allowed'}), 405
 
@@ -38,5 +42,4 @@ def read_settings():
     json_list = [i.toJSON() for i in settings]
     for setting in json_list:
         settingsObject[setting['name']] = setting
-    print(settingsObject)
     return jsonify(settingsObject)
