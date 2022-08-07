@@ -7,6 +7,7 @@ from routes.settings import settings_bp
 from routes.calibration import calibration_bp
 from routes.barcode import barcode_bp
 from routes.omr import omr_bp
+from waitress import serve
 
 app = Flask(__name__)
 cors = CORS(app)
@@ -29,5 +30,6 @@ def index():
     return 'Hello World!'
 
 if __name__ == '__main__':
-    app.debug = True
-    app.run()
+    # app.debug = True
+    # app.run()
+    serve(app, host='127.0.0.1', port=5000,threads=8)
