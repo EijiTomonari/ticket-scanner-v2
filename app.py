@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_cors import CORS, cross_origin
 from flask_migrate import Migrate
 from controllers.CamerasController import initBarcodesCamera, initOMRCamera
 from models.Setting import db
@@ -8,7 +9,9 @@ from routes.barcode import barcode_bp
 from routes.omr import omr_bp
 
 app = Flask(__name__)
+cors = CORS(app)
 app.config.from_object('config')
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 db.init_app(app)
 migrate = Migrate(app, db)
